@@ -1,21 +1,32 @@
-const express = require("express");
-const { google } = require("googleapis");
-const app = express();
-require("dotenv").config();
+import express from "express"
+import { GoogleAuth } from "google-auth-library"
+import cors from "cors"
+import "dotenv/config"
 
-app.get("/token", async (req, res) => {
+const app = express()
+app.use(cors())
+const port = process.env.PORT || 3000
+
+app.get("/", async (req, res) => {
   try {
-    const jwtClient = new google.auth.JWT({
-      email: process.env.CLIENT_EMAIL,
-      key: process.env.PRIVATE_KEY.replace(/\\n/g, "\n"),
+    const auth = new GoogleAuth({
+      credentials: {
+        client_email: process.env.CLIENT_EMAIL,
+        private_key: process.env.PRIVATE_KEY.replace(/\\n/g, "\n"),
+      },
       scopes: ["https://www.googleapis.com/auth/datastore"],
-    });
+    })
 
-    const tokens = await jwtClient.authorize();
-    res.json({ access_token: tokens.access_token });
+    const client = await auth.getClient()
+    const accessTokenResponse = await client.getAccessToken()
+
+    res.json({ token: accessTokenResponse.token })
   } catch (err) {
-    res.status(500).send(err);
+    console.error(err)
+    res.status(500).send("Error generating token")
   }
-});
+})
 
-app.listen(3000, () => console.log("Token server running"));
+app.listen(port, () => {
+  console.log(`Firebase token server running on port ${port}`)
+})
